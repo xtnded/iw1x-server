@@ -4,10 +4,10 @@
 Supported game version: **1.1**
 ___
 ### Download
-[Releases](https://github.com/raphael12333/iw1x-server/releases)
+[Releases](https://github.com/xtnded/iw1x-server/releases)
 ___
 ### Usage and Build steps
-[Wiki](https://github.com/raphael12333/iw1x-server/wiki)
+[Wiki](https://github.com/xtnded/iw1x-server/wiki)
 ___
 #### References
 - [Killtube](https://www.killtube.org/)

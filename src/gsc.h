@@ -74,6 +74,15 @@ void gsc_player_playscriptanimation(scr_entref_t ref);
 void gsc_player_isbot(scr_entref_t ref);
 void gsc_player_sethiddenfromscoreboard(scr_entref_t ref);
 void gsc_player_ishiddenfromscoreboard(scr_entref_t ref);
+void gsc_player_freezecontrols(scr_entref_t ref);
+void gsc_player_getuserinfokey(scr_entref_t ref);
+void gsc_player_enableweapon(scr_entref_t ref);
+void gsc_player_disableweapon(scr_entref_t ref);
+void gsc_player_renamebot(scr_entref_t ref);
+void gsc_player_sendservercommand(scr_entref_t ref);
+void gsc_player_moveupbuttonpressed(scr_entref_t ref);
+void gsc_player_movedownbuttonpressed(scr_entref_t ref);
+void gsc_player_kickbot(scr_entref_t ref);
 ////
 
 //// Bots
@@ -113,7 +122,7 @@ void gsc_utils_toupper();
 void gsc_utils_tolower();
 void gsc_utils_strtok();
 void gsc_utils_replace();
-void gsc_utils_getserverstarttime();
+void gsc_utils_getserverstarttime();//xtnded - gsc_utils_seconds
 void gsc_utils_getsystemtime();
 void gsc_utils_strftime();
 void gsc_utils_getconfigstring();
@@ -126,6 +135,8 @@ void gsc_utils_strip();
 void gsc_utils_strstr();
 void gsc_utils_monotone();
 void gsc_utils_gettype();
+void gsc_utils_sendservercommand();
+void gsc_utils_printconsole();
 ////
 
 //// Exec

@@ -55,6 +55,7 @@ cvar_t *player_sprint;
 cvar_t *player_sprintMinTime;
 cvar_t *player_sprintSpeedScale;
 cvar_t *player_sprintTime;
+cvar_t *x_patchclient;
 ////
 
 //// Game lib
@@ -88,6 +89,7 @@ Scr_GetString_t Scr_GetString;
 Scr_GetType_t Scr_GetType;
 Scr_GetEntity_t Scr_GetEntity;
 Scr_AddBool_t Scr_AddBool;
+Scr_GetBool_t Scr_GetBool;
 Scr_AddInt_t Scr_AddInt;
 Scr_AddFloat_t Scr_AddFloat;
 Scr_AddString_t Scr_AddString;
@@ -129,7 +131,14 @@ trap_SetConfigstring_t trap_SetConfigstring;
 trap_GetArchivedPlayerState_t trap_GetArchivedPlayerState;
 G_Error_t G_Error;
 Scr_GetPointerType_t Scr_GetPointerType;
+getuserinfo_t getuserinfo;
+setuserinfo_t setuserinfo;
 ////
+
+char xcl_patchpak_sum[256];
+char xcl_patchpak_name[256];
+char xcl_patchpak_mod_sum[256];
+char xcl_patchpak_mod_name[256];
 
 //// Callbacks
 int codecallback_startgametype = 0;
@@ -161,6 +170,7 @@ callback_t callbacks[] =
 ////
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/sv_client.c#L98
+void SV_DoneDownload( client_t *cl );
 static ucmd_t ucmds[] =
 {
     {"userinfo",        SV_UpdateUserinfo_f,     },
@@ -170,7 +180,7 @@ static ucmd_t ucmds[] =
     {"download",        SV_BeginDownload_f,      },
     {"nextdl",          SV_NextDownload_f,       },
     {"stopdl",          SV_StopDownload_f,       },
-    {"donedl",          SV_DoneDownload_f,       },
+    {"donedl",          SV_DoneDownload,         },
     {"retransdl",       SV_RetransmitDownload_f, },
     {"sprint",          UCMD_custom_sprint, },
     {NULL, NULL}
@@ -378,7 +388,63 @@ void custom_Com_Init(char *commandLine)
     sv_statusShowDeath = Cvar_Get("sv_statusShowDeath", "0", CVAR_ARCHIVE);
     sv_statusShowTeamScore = Cvar_Get("sv_statusShowTeamScore", "0", CVAR_ARCHIVE);
     sv_spectatorNoclip = Cvar_Get("sv_spectatorNoclip", "0", CVAR_ARCHIVE);
+
+    //1.1x
+    x_patchclient = Cvar_Get("x_patchclient", "1", 0);
+    Cvar_Get("x_patchcmd", "connect update.cod1x.eu", CVAR_SYSTEMINFO);
+	Cvar_Get("sv_x_referencedPaks", "", CVAR_SYSTEMINFO | CVAR_ROM);
+	Cvar_Get("sv_x_referencedPakNames", "", CVAR_SYSTEMINFO | CVAR_ROM);
+    char buildStr[32];
+    Com_sprintf(buildStr, sizeof(buildStr), "%d", SERVERBUILD);
+    Cvar_Get("xtndedbuild", buildStr, CVAR_SERVERINFO | CVAR_ROM | CVAR_NORESTART);
     ////
+
+    Com_sprintf(xcl_patchpak_name, sizeof(xcl_patchpak_name), "main/%s", XCL_PATCHPAK_BASENAME);
+	if(Cvar_VariableString("fs_game")[0] != '\0') {
+		Com_sprintf(xcl_patchpak_mod_name, sizeof(xcl_patchpak_mod_name), "%s/%s", Cvar_VariableString("fs_game"), XCL_PATCHPAK_MOD_BASENAME);
+	}
+}
+
+void SV_DoneDownload( client_t *cl ) {
+	if(x_patchclient->integer) {
+		if(!strlen(Info_ValueForKey(cl->userinfo, "xtndedbuild"))) {
+			NET_OutOfBandPrint(NS_SERVER, cl->netchan.remoteAddress, "error\n%s\n", "Call of Duty Extended\n\nTo update to newest CoD 1x, please write in console:\nconnect update.cod1x.eu\n\nEnjoy!");
+			return;
+		}
+	}
+
+	SV_DoneDownload_f(cl);
+}
+
+cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
+	cvar_t * (*ret)(const char*,const char*,int);
+	*(int*)&ret = 0x806ECD4;
+
+	return ret(var_name, value, force);
+}
+
+void SV_PatchReferencedPakSums(const char* name, const char* value) {
+	if(x_patchclient->integer) {
+		Cvar_Set2("sv_x_referencedPaks", value, qtrue);
+
+		char paks[1024];
+		Com_sprintf(paks, sizeof(paks), "%s %s", xcl_patchpak_sum, xcl_patchpak_mod_sum);
+		Cvar_Set2("sv_referencedPaks", paks, qtrue);
+	} else {
+		Cvar_Set2("sv_referencedPaks", value, qtrue);
+	}
+}
+
+void SV_PatchReferencedPakNames(const char* name, const char* value) {
+	if(x_patchclient->integer) {
+		Cvar_Set2("sv_x_referencedPakNames", value, qtrue);
+
+		char pakn[1024];
+		Com_sprintf(pakn, sizeof(pakn), "%s %s", xcl_patchpak_name, xcl_patchpak_mod_name);
+		Cvar_Set2("sv_referencedPakNames", pakn, qtrue);
+	} else {
+		Cvar_Set2("sv_referencedPakNames", value, qtrue);
+	}
 }
 
 // See https://github.com/xtnded/codextended/blob/855df4fb01d20f19091d18d46980b5fdfa95a712/src/script.c#L944
@@ -439,25 +505,50 @@ void custom_GScr_LoadGameTypeScript()
     }
 }
 
+//1.1x
+int FS_IsPakFile(char *basename) {
+	if(strstr(basename, "pak") != NULL)
+		return 1;
+	if(strstr(basename, "localized") != NULL)
+		return 1;
+	return 0;
+}
+
+bool FS_IsClientUpdateFile(char* basename) {
+	if(strstr(basename, XCL_PATCHPAK_BASENAME) != NULL)
+		return 1;
+	if(strstr(basename, XCL_PATCHPAK_MOD_BASENAME) != NULL)
+		return 1;
+	return 0;
+}
+
 const char* custom_FS_ReferencedPakNames(void)
 {
     static char info[BIG_INFO_STRING];
-    searchpath_t *search;
-
     info[0] = 0;
+    searchpath_t *search;
+    char fs_game[256];
+    char* check = Cvar_VariableString("fs_game");
+
+    if (!check || check[0] == '\0')
+        strcpy(fs_game, "main");
+    else
+        strncpy(fs_game, check, sizeof(fs_game) - 1);
     
-    for (search = fs_searchpaths; search; search = search->next)
-    {
-        if(!search->pak)
-            continue;
-        if(FS_svrPak(search->pak->pakBasename))
+    for(search = fs_searchpaths->next; search; search = search->next) {
+       
+            if(!search->pak)
             continue;
 
-        if(*info)
-            Q_strcat(info, sizeof(info), " ");
-        Q_strcat(info, sizeof(info), search->pak->pakGamename);
-        Q_strcat(info, sizeof(info), "/");
-        Q_strcat(info, sizeof(info), search->pak->pakBasename);
+            if(FS_svrPak(search->pak->pakBasename) || FS_IsClientUpdateFile(search->pak->pakBasename))
+                continue;
+
+            if(*info)
+                 Q_strcat(info, sizeof(info), " ");
+
+            Q_strcat(info, sizeof(info), search->pak->pakGamename);
+            Q_strcat(info, sizeof(info), "/");
+            Q_strcat(info, sizeof(info), search->pak->pakBasename);
     }
 
     return info;
@@ -466,22 +557,37 @@ const char* custom_FS_ReferencedPakNames(void)
 const char* custom_FS_ReferencedPakChecksums(void)
 {
     static char info[BIG_INFO_STRING];
-    searchpath_t *search;
-    
     info[0] = 0;
+    searchpath_t *search;
+    char fs_game[256];
+    char* check = Cvar_VariableString("fs_game");
 
-    for (search = fs_searchpaths; search; search = search->next)
+    if (!check || check[0] == '\0')
+        strcpy(fs_game, "main");
+    else
+        strncpy(fs_game, check, sizeof(fs_game) - 1);
+    
+    for(search = fs_searchpaths->next; search; search = search->next) 
     {
-        if(!search->pak)
-            continue;
-        if(FS_svrPak(search->pak->pakBasename))
-            continue;
-        
-        Q_strcat(info, sizeof(info), va("%i ", search->pak->checksum));
+            if(!search->pak)
+                continue;
+
+            // Get checksums for 1.1x patch files.
+            if(!strcasecmp(search->pak->pakBasename, XCL_PATCHPAK_BASENAME)) {
+                Com_sprintf(xcl_patchpak_sum, sizeof(xcl_patchpak_sum), "%d", search->pak->checksum);
+            } else if(!strcasecmp(search->pak->pakGamename, fs_game) && !strcasecmp(search->pak->pakBasename, XCL_PATCHPAK_MOD_BASENAME)) {
+                Com_sprintf(xcl_patchpak_mod_sum, sizeof(xcl_patchpak_mod_sum), "%d", search->pak->checksum);
+            }
+
+            if(FS_svrPak(search->pak->pakBasename) || FS_IsClientUpdateFile(search->pak->pakBasename))
+                continue;
+
+            Q_strcat(info, sizeof(info), va("%i ", search->pak->checksum));
     }
 
     return info;
 }
+
 
 void custom_SV_SpawnServer(char *server)
 {
@@ -3216,6 +3322,43 @@ void CrashLogger(int sig)
     exit(1);
 }
 
+static void (*PM_CheckForChangeWeapon)();
+static void (*PM_BeginWeaponChange)(int param_1, int param_2);
+static void (*PM_FinishWeaponChange)();
+
+void custom_PM_CheckForChangeWeapon()
+{
+	pmove_t *xm = *(pmove_t**)(int)pm;
+
+	if ((xm->ps->pm_flags & 0x20000))
+	{
+		int *weapon = (int*)((int)xm->ps + 176);
+		if (*weapon)
+		{
+			PM_BeginWeaponChange(*weapon, 0);
+		}
+		return;
+	}
+	PM_CheckForChangeWeapon();
+}
+
+void custom_PM_FinishWeaponChange()
+{
+	pmove_t *xm = *(pmove_t**)(int)pm;
+
+	if ((xm->ps->pm_flags & 0x20000))
+	{
+		int *weapon = (int*)((int)xm->ps + 176);
+		if (*weapon)
+		{
+			*weapon = 0;
+		}
+		return;
+	}
+	PM_FinishWeaponChange();
+}
+
+
 void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int, ...), int (*systemcalls)(int, ...))
 {
     hook_Sys_LoadDll->unhook();
@@ -3301,6 +3444,7 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     Scr_GetType = (Scr_GetType_t)dlsym(libHandle, "Scr_GetType");
     Scr_GetEntity = (Scr_GetEntity_t)dlsym(libHandle, "Scr_GetEntity");
     Scr_AddBool = (Scr_AddBool_t)dlsym(libHandle, "Scr_AddBool");
+    Scr_GetBool = (Scr_GetBool_t)dlsym(libHandle, "Scr_GetBool");
     Scr_AddInt = (Scr_AddInt_t)dlsym(libHandle, "Scr_AddInt");
     Scr_AddFloat = (Scr_AddFloat_t)dlsym(libHandle, "Scr_AddFloat");
     Scr_AddString = (Scr_AddString_t)dlsym(libHandle, "Scr_AddString");
@@ -3393,6 +3537,13 @@ void *custom_Sys_LoadDll(const char *name, char *fqpath, int (**entryPoint)(int,
     hook_DeathmatchScoreboardMessage->hook();
     hook_PM_FlyMove = new cHook((int)dlsym(libHandle, "_init") + 0x79C8, (int)custom_PM_FlyMove);
     hook_PM_FlyMove->hook();
+
+    hook_call((int)dlsym(libHandle, "PM_Weapon") + 0x121, (int)custom_PM_CheckForChangeWeapon);
+	PM_CheckForChangeWeapon = (void (*)())((int)dlsym(libHandle, "PM_AdjustAimSpreadScale") + 0x330);
+	PM_BeginWeaponChange = (void (*)(int, int))((int)dlsym(libHandle, "PM_InteruptWeaponWithProneMove") + 0x614);
+	hook_call((int)dlsym(libHandle, "PM_Weapon") + 0x1BA, (int)custom_PM_FinishWeaponChange);
+    PM_FinishWeaponChange = (void (*)())((int)dlsym(libHandle, "PM_InteruptWeaponWithProneMove") + 0x8FC);
+
     
     return libHandle;
 }
@@ -3438,6 +3589,8 @@ class iw1x
         hook_call(0x0808c7ea, (int)hook_SV_AuthorizeIpPacket);
         hook_call(0x0808c74e, (int)hook_SVC_Info);
         hook_call(0x08089db9, (int)hook_SV_SetConfigstring_SV_SendServerCommand_cs);
+	    hook_call(0x0808A877, (int)SV_PatchReferencedPakSums);
+	    hook_call(0x0808A88C, (int)SV_PatchReferencedPakNames);
 
         hook_jmp(0x080717a4, (int)custom_FS_ReferencedPakChecksums);
         hook_jmp(0x080716cc, (int)custom_FS_ReferencedPakNames);
@@ -3467,6 +3620,9 @@ class iw1x
         hook_SV_AddOperatorCommands->hook();
         hook_SV_BotUserMove = new cHook(0x0808cccc, (int)custom_SV_BotUserMove);
         hook_SV_BotUserMove->hook();
+
+        getuserinfo = (getuserinfo_t)0x808B25C;
+        setuserinfo = (setuserinfo_t)0x808B1D0;
 
         printf("----------------------\n");
     }

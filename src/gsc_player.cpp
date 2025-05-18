@@ -748,3 +748,106 @@ void gsc_player_ishiddenfromscoreboard(scr_entref_t ref)
 
     Scr_AddBool(customPlayerState[id].hiddenFromScoreboard);
 }
+
+void gsc_player_freezecontrols(scr_entref_t ref) {
+    qboolean freeze;
+    int id = ref.entnum;
+    gentity_t *entity = &g_entities[id];
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_freezecontrols() entity %i is not a player", id);
+        Scr_AddUndefined();
+        return;
+    }
+
+    freeze = Scr_GetBool(0);
+
+    if (freeze)
+        entity->client->ps.pm_flags |= 0x4000;
+    else
+        entity->client->ps.pm_flags &= ~0x4000;
+}
+
+void gsc_player_disableweapon(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    gentity_t *entity = &g_entities[id];
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_disableweapon() entity %i is not a player", id);
+        Scr_AddUndefined();
+        return;
+    }
+	entity->client->ps.pm_flags |= 0x20000;
+}
+
+void gsc_player_enableweapon(scr_entref_t ref)
+{
+    int id = ref.entnum;
+    gentity_t *entity = &g_entities[id];
+
+    if (id >= MAX_CLIENTS)
+    {
+        stackError("gsc_player_enableweapon() entity %i is not a player", id);
+        Scr_AddUndefined();
+        return;
+    }
+	entity->client->ps.pm_flags &= ~0x20000;
+}
+
+void gsc_player_renamebot(scr_entref_t ref) {
+    int id = ref.entnum;
+	const char* key = Scr_GetString(0);
+	char userinfo[MAX_STRING_CHARS];
+	getuserinfo(id, userinfo, sizeof(userinfo));
+	
+	Info_SetValueForKey(userinfo, "name", key);
+	setuserinfo(id, userinfo);
+	
+	client_t* cl = &svs.clients[id];
+	if(cl) {
+		memcpy(&cl->name, key, 32);
+		cl->name[31] = '\0';
+	}
+}
+
+void gsc_player_sendservercommand(scr_entref_t ref) {
+    int id = ref.entnum;
+	const char* cmd = Scr_GetString(0);
+	SV_SendServerCommand(&svs.clients[id], 1, cmd);
+}
+
+void gsc_player_moveupbuttonpressed(scr_entref_t ref) {
+    int id = ref.entnum;
+    client_t *cl = &svs.clients[id];
+    if(cl) {
+        if((cl->lastUsercmd.upmove & 0x7f) == 0x7f) {
+            Scr_AddBool(true);
+            return;
+		}
+    }
+    Scr_AddBool(false);
+}
+
+void gsc_player_movedownbuttonpressed(scr_entref_t ref) {
+    int id = ref.entnum;
+    client_t *cl = &svs.clients[id];
+    if(cl) {
+        if((cl->lastUsercmd.upmove & 0x81) == 0x81) {
+            Scr_AddBool(true);
+            return;
+		}
+    }
+    Scr_AddBool(false);
+}
+
+void gsc_player_kickbot(scr_entref_t ref) { //weird playercmd > bot
+    int id = ref.entnum;
+	client_t* cl = &svs.clients[id];
+	if(cl) {
+		SV_DropClient(cl, "");
+		cl->state = CS_FREE;
+	}
+}

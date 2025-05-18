@@ -651,6 +651,16 @@ void gsc_utils_gettype()
     Scr_AddString(stackGetParamTypeAsString(0));
 }
 
+void gsc_utils_sendservercommand() {
+	const char* cmd = Scr_GetString(0);
+	SV_SendServerCommand(NULL, 1, cmd);
+}
+
+void gsc_utils_printconsole() { //if this was a method the index would be the entity's number
+	const char* txt = Scr_GetString(0);
+	printf(txt);
+}
+
 #if COMPILE_SSL == 1
 void gsc_utils_hash()
 {

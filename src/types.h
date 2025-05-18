@@ -22,6 +22,11 @@
 #define AUTHORIZE_TIMEOUT 5000
 #define AUTHORIZE_SERVER_NAME "codauthorize.activision.com"
 
+//1.1x
+#define XCL_PATCHPAK_BASENAME "____________________CoD1x_Redirect"
+#define XCL_PATCHPAK_MOD_BASENAME "CoD1x_RemoveMod"
+#define SERVERBUILD 2100
+
 #define MAX_BPS_WINDOW              20
 #define MAX_CHALLENGES              1024
 #define MAX_CLIENTS                 64
@@ -46,14 +51,19 @@
 #define MAX_HUDELEMS_ARCHIVAL       MAX_HUDELEMENTS
 #define MAX_HUDELEMS_CURRENT        MAX_HUDELEMENTS
 #define MAX_CVAR_VALUE_STRING       256
+#define MAX_STRING_CHARS            1024 
 
-#define CVAR_ARCHIVE        1
-#define CVAR_SERVERINFO     4
-#define CVAR_SYSTEMINFO     8
-#define CVAR_INIT           16
-#define CVAR_LATCH          32
-#define CVAR_ROM            64
-#define CVAR_CHEAT          512
+#define CVAR_ARCHIVE        1        // set to cause it to be saved to vars.rc
+#define CVAR_USERINFO       2       // sent to server on connect or change
+#define CVAR_SERVERINFO     4       // sent in response to front end requests
+#define CVAR_SYSTEMINFO     8       // these cvars will be duplicated on all clients
+#define CVAR_INIT           16      // don't allow change from console at all,
+#define CVAR_LATCH          32      // will only change when C code next does
+#define CVAR_ROM            64      // display only, cannot be set by user at all
+#define CVAR_USER_CREATED   128     // created by a set command
+#define CVAR_TEMP           256     // can be set even when cheats are disabled, but is not archived
+#define CVAR_CHEAT          512     // can not be changed if cheats are disabled
+#define CVAR_NORESTART      1024    // do not clear when a cvar_restart is issued
 
 #define SVF_SINGLECLIENT 0x800
 

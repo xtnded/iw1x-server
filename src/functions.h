@@ -364,6 +364,9 @@ extern Scr_GetEntity_t Scr_GetEntity;
 typedef void (*Scr_AddBool_t)(qboolean value);
 extern Scr_AddBool_t Scr_AddBool;
 
+typedef bool (*Scr_GetBool_t)(int);
+extern Scr_GetBool_t Scr_GetBool;
+
 typedef void (*Scr_AddInt_t)(int value);
 extern Scr_AddInt_t Scr_AddInt;
 
@@ -561,3 +564,9 @@ extern trap_SetConfigstring_t trap_SetConfigstring;
 
 typedef int (*trap_GetArchivedPlayerState_t)(int clientNum, int *pArchiveTime, playerState_t *ps);
 ////
+
+//xtnded compatibility
+typedef void (*getuserinfo_t)( int index, char *buffer, int bufferSize );
+extern getuserinfo_t getuserinfo;
+typedef void (*setuserinfo_t)( int,const char*);
+extern setuserinfo_t setuserinfo;

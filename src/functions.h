@@ -535,6 +535,9 @@ static const SV_CanReplaceServerCommand_t SV_CanReplaceServerCommand = (SV_CanRe
 
 typedef void (*SV_FlushRedirect_t)(char *outputbuf);
 static const SV_FlushRedirect_t SV_FlushRedirect = (SV_FlushRedirect_t)0x0808d318;
+
+typedef void (*SV_GetConfigstring_t)( int index, char *buffer, int bufferSize );
+static const SV_GetConfigstring_t SV_GetConfigstring = (SV_GetConfigstring_t)0x808B05C;
 ////
 
 //// SVC

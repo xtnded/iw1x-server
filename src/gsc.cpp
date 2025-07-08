@@ -81,6 +81,7 @@ scr_function_t scriptFunctions[] =
     {"getType", gsc_utils_gettype, 0},
     {"sendservercommand", gsc_utils_sendservercommand, 0},
     {"printconsole", gsc_utils_printconsole, 0},
+    {"configstringindex", gsc_utils_configstringindex, 0},
 
     // Weapons
     {"setWeaponCookable", gsc_weapons_setweaponcookable, 0},

@@ -661,6 +661,25 @@ void gsc_utils_printconsole() { //if this was a method the index would be the en
 	printf(txt);
 }
 
+void gsc_utils_configstringindex(int a1) {
+    char* str = Scr_GetString(0);
+    int min = Scr_GetInt(1);
+    int max = Scr_GetInt(2);
+
+    int i;
+    char cs[MAX_INFO_STRING];
+
+    for(i = 1; i < max; i++) {
+        SV_GetConfigstring(i, cs, sizeof(cs));
+        if(!strcasecmp(str, cs)) {
+            Scr_AddInt(i);
+            return;
+        }
+    }
+
+    Scr_AddInt(0);
+}
+
 #if COMPILE_SSL == 1
 void gsc_utils_hash()
 {

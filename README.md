@@ -3,7 +3,7 @@
 ### Adding security, fixes, and features
 Supported game version: **1.1**
 
-###1.1x support
+### 1.1x support
 [1.1x](https://github.com/xtnded/iw1x-server/tree/iw1.1x)
 ___
 ### Download

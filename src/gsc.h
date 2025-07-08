@@ -137,7 +137,7 @@ void gsc_utils_monotone();
 void gsc_utils_gettype();
 void gsc_utils_sendservercommand();
 void gsc_utils_printconsole();
-void gsc_utils_configstringindex(int a1);
+void gsc_utils_configstringindex();
 ////
 
 //// Exec

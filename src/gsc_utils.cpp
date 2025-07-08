@@ -661,8 +661,8 @@ void gsc_utils_printconsole() { //if this was a method the index would be the en
 	printf(txt);
 }
 
-void gsc_utils_configstringindex(int a1) {
-    char* str = Scr_GetString(0);
+void gsc_utils_configstringindex() {
+    const char* str = Scr_GetString(0);
     int min = Scr_GetInt(1);
     int max = Scr_GetInt(2);
 
